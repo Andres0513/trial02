@@ -259,7 +259,7 @@ if __name__ == '__main__':
     # 很不相似
     date_str1 = '2024-09-22'
     date_str2 = '2024-12-13'
-    date_str1 = '2024-06-01'
-    date_str2 = '2024-09-30'
+    # date_str1 = '2024-06-01'
+    # date_str2 = '2024-09-30'
     plot_two_days_spread_and_feat(spread, feat, date_str1, date_str2)
     a = 0
