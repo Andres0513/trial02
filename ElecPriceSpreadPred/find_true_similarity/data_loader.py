@@ -3,6 +3,10 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import pearsonr
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
 from enums import similarity_method
 
 class Data_Loader:
@@ -102,3 +106,28 @@ class Data_Loader:
 
         res = pd.DataFrame(res)
         return res
+
+
+    def run(self, df, cal_scores=True):
+        da, rt, spread, feat = self.transfer_data(df)
+        scores = pd.DataFrame([])
+        if cal_scores:
+            scores = self.cal_true_similarity_score(da, rt, spread)
+        #
+        # self.pairs = []
+        # self.scores = []
+        #
+        # # 提前将数据转为 numpy 数组，加快读取速度
+        # self.feat_dict = {}
+        # bid_cols = [f'day_日前竞价空间{i}' for i in range(96)]
+        # load_cols = [f'day_统调负荷预测{i}' for i in range(96)]
+        # for date in feat.index:
+        #     bid = feat.loc[date, bid_cols].values.astype(np.float32)
+        #     load = feat.loc[date, load_cols].values.astype(np.float32)
+        #     self.feat_dict[date] = (bid, load)
+        #     a = 0
+        # wind_cols = [f'wind_{i}' for i in range(96)]
+
+        a = 0
+
+        return da, rt, spread, feat, scores
