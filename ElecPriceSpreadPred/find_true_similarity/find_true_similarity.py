@@ -90,7 +90,7 @@ if __name__ == '__main__':
     # 3. 模型初始化
     model = UltimateSiameseNet(num_numerical_features=4).to(device)
     criterion = nn.MSELoss()  # 回归任务用 MSE，或者 BCEWithLogitsLoss (取决于标签范围)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0002)
 
 
     def move_batch_to_device(batch_data, device):
@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
 
     # 5. 开始训练
-    num_epochs = 10
+    num_epochs = 50
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
