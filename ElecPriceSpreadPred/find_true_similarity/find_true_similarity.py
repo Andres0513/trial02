@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
 
     # 5. 开始训练
-    num_epochs = 50
+    num_epochs = 100
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
@@ -155,3 +155,49 @@ if __name__ == '__main__':
 
         avg_val_loss = val_loss / len(val_loader)
         print(f"📊 Epoch {epoch + 1} 完成 | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
+
+
+
+    # ========================== 训练完以后，把模型转成 ONNX ==========================
+    model.eval()  # 👉 导出前必须切换到评估模式，固定 Dropout 和 BatchNorm
+    batch_size = 64
+    seq_len = 96
+    num_features = 4
+
+    # 生成 dummy data
+    dummy_curves = [torch.randn(batch_size, seq_len).to(device) for _ in range(12)]
+    dummy_nums = torch.randn(batch_size, num_features).to(device)
+
+    # 组织成模型 forward 期望的格式：( (curve1, curve2, ..., num), (curve1, ..., num) )
+    # 注意：这里我们使用元组嵌套，更符合 Python 的语义
+    input1 = (*dummy_curves, dummy_nums)
+    input2 = (*dummy_curves, dummy_nums)  # 或者用不同的数据
+
+    # 3. 导出配置
+    input_names = [f"curve_{i}" for i in range(12)] + ["numerical_feat"] + \
+                  [f"curve_{i}_2" for i in range(12)] + ["numerical_feat_2"]
+
+    output_names = ["similarity_score"]
+
+    # 动态轴：假设第 0 维是 batch
+    dynamic_axes = {}
+    for name in input_names:
+        dynamic_axes[name] = {0: "batch_size"}
+    dynamic_axes[output_names[0]] = {0: "batch_size"}
+
+    # 4. 执行导出 (关键点：dynamo=True)
+    torch.onnx.export(
+        model,
+        (input1, input2),  # 👈 直接传入两个元组，新后端能理解这种结构
+        "ultimate_siamese_net.onnx",
+        opset_version=17,
+        do_constant_folding=True,
+        export_params=True,
+        input_names=input_names,
+        output_names=output_names,
+        dynamic_axes=dynamic_axes,
+        # ================== 关键修复 ==================
+        dynamo=True  # 👈 强制使用新的 torch.export 后端，不再报错 "27 arguments"
+        # ==============================================
+    )
+    print("✅ 模型已成功导出为 ultimate_siamese_net.onnx")

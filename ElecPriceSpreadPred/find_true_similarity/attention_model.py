@@ -27,7 +27,7 @@ class DatePairDataset(Dataset):
             self.feat_dict[date] = {
                 'bid': df_feat.loc[date, [f'day_日前竞价空间{i}' for i in range(96)]].values.astype(np.float32),
                 'load': df_feat.loc[date, [f'day_统调负荷预测{i}' for i in range(96)]].values.astype(np.float32),
-                'import': df_feat.loc[date, [f'day_外来电计划{i}' for i in range(96)]].values.astype(np.float32),
+                'imported': df_feat.loc[date, [f'day_外来电计划{i}' for i in range(96)]].values.astype(np.float32),
                 'pv': df_feat.loc[date, [f'day_光伏出力预测{i}' for i in range(96)]].values.astype(np.float32),
                 'wind_power': df_feat.loc[date, [f'day_风电出力预测{i}' for i in range(96)]].values.astype(np.float32),
                 'fixed': df_feat.loc[date, [f'day_固定出力计划{i}' for i in range(96)]].values.astype(np.float32),
@@ -81,14 +81,14 @@ class DatePairDataset(Dataset):
 
         return (
             (torch.from_numpy(feat1['bid']), torch.from_numpy(feat1['load']),
-             torch.from_numpy(feat1['import']), torch.from_numpy(feat1['pv']),
+             torch.from_numpy(feat1['imported']), torch.from_numpy(feat1['pv']),
              torch.from_numpy(feat1['wind_power']), torch.from_numpy(feat1['fixed']),
              torch.from_numpy(feat1['temp']), torch.from_numpy(feat1['humidity']),
              torch.from_numpy(feat1['rain']), torch.from_numpy(feat1['irr']),
              torch.from_numpy(feat1['cloud']), torch.from_numpy(feat1['wind']),
              torch.from_numpy(feat1['num'])),
             (torch.from_numpy(feat2['bid']), torch.from_numpy(feat2['load']),
-             torch.from_numpy(feat2['import']), torch.from_numpy(feat2['pv']),
+             torch.from_numpy(feat2['imported']), torch.from_numpy(feat2['pv']),
              torch.from_numpy(feat2['wind_power']), torch.from_numpy(feat2['fixed']),
              torch.from_numpy(feat2['temp']), torch.from_numpy(feat2['humidity']),
              torch.from_numpy(feat2['rain']), torch.from_numpy(feat2['irr']),
@@ -146,7 +146,7 @@ class UltimateSiameseNet(nn.Module):
         super().__init__()
 
         # 1. 为每一条曲线建立独立的自注意力提取器
-        self.curve_names = ['bid', 'load', 'import', 'pv', 'wind_power', 'fixed',
+        self.curve_names = ['bid', 'load', 'imported', 'pv', 'wind_power', 'fixed',
                             'temp', 'humidity', 'rain', 'irr', 'cloud', 'wind']
         self.self_attns = nn.ModuleDict({
             name: SelfAttentionBlock(seq_len=96, hidden_dim=32) for name in self.curve_names
