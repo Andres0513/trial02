@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import pearsonr
+from datetime import datetime
 
 import torch
 import torch.nn as nn
@@ -108,8 +109,25 @@ class Data_Loader:
         return res
 
 
-    def run(self, df, cal_scores=True):
+    def run(self, df, date_range, cal_scores=True):
+        def filter_date(df, date_range):
+            filtered_dfs = []
+            for start, end in date_range:
+                # 将字符串转为datetime.date对象
+                start_date = datetime.strptime(start, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end, '%Y-%m-%d').date()
+                temp_df = df.loc[start_date:end_date]
+                filtered_dfs.append(temp_df)
+            new_df = pd.concat(filtered_dfs)
+            return new_df
+
         da, rt, spread, feat = self.transfer_data(df)
+        if len(date_range) != 0:
+            da = filter_date(da, date_range)
+            rt = filter_date(rt, date_range)
+            spread = filter_date(spread, date_range)
+            feat = filter_date(feat, date_range)
+
         scores = pd.DataFrame([])
         if cal_scores:
             scores = self.cal_true_similarity_score(da, rt, spread)

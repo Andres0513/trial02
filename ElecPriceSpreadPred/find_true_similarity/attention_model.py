@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, random_split
 import numpy as np
-import pandas as pd
+import utils
 from scipy.interpolate import make_interp_spline
 
 
@@ -39,6 +39,7 @@ class DatePairDataset(Dataset):
                 'wind': df_feat.loc[date, [f'day_风速{i}' for i in range(24)]].values.astype(np.float32),
                 'num': df_feat.loc[date, ['grid_env', '星期', '季度', '是否节假日']].values.astype(np.float32)
             }
+        # self.feat_dict = utils.extract_feat_to_dict(df_feat)
 
         for _, row in df_scores.iterrows():
             self.pairs.append((row['date1'], row['date2']))
@@ -48,19 +49,21 @@ class DatePairDataset(Dataset):
         """
         根据曲线类型智能选择插值算法并对齐到目标长度
         """
-        if len(curve_data) == self.target_seq_len:
-            return curve_data
+        return utils.align_curve(curve_name, curve_data, self.target_seq_len)
 
-        original_x = np.arange(len(curve_data))
-        target_x = np.linspace(0, len(curve_data) - 1, self.target_seq_len)
-
-        # 负荷数据线性插值，气象曲线使用三次样条插值保证平滑
-        if (curve_name == 'temp' or curve_name == 'humidity' or curve_name == 'rain' or
-              curve_name == 'irr' or curve_name == 'cloud' or curve_name == 'wind'):
-            spl = make_interp_spline(original_x, curve_data, k=3)
-            return spl(target_x).astype(np.float32)
-        else:
-            return np.interp(target_x, original_x, curve_data).astype(np.float32)
+        # if len(curve_data) == self.target_seq_len:
+        #     return curve_data
+        #
+        # original_x = np.arange(len(curve_data))
+        # target_x = np.linspace(0, len(curve_data) - 1, self.target_seq_len)
+        #
+        # # 负荷数据线性插值，气象曲线使用三次样条插值保证平滑
+        # if (curve_name == 'temp' or curve_name == 'humidity' or curve_name == 'rain' or
+        #       curve_name == 'irr' or curve_name == 'cloud' or curve_name == 'wind'):
+        #     spl = make_interp_spline(original_x, curve_data, k=3)
+        #     return spl(target_x).astype(np.float32)
+        # else:
+        #     return np.interp(target_x, original_x, curve_data).astype(np.float32)
 
     def __len__(self):
         return len(self.scores)

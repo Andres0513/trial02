@@ -21,7 +21,9 @@ if __name__ == '__main__':
     print(f"✅ 数据集已加载：uninted_df.pkl")
 
     dl = Data_Loader(SIMILARITY_METHOD)
-    da, rt, spread, feat, scores = dl.run(df, True)
+    # 需要的数据日期范围
+    date_range = [['2024-05-02', '2026-04-30']]
+    da, rt, spread, feat, scores = dl.run(df, date_range, True)
 
     # scores.to_excel('cosine_scores.xlsx')
     # plot_spread_distribution(df)
@@ -150,6 +152,7 @@ if __name__ == '__main__':
                 batch_labels = batch_labels.to(device)
 
                 outputs = model(batch_input1, batch_input2)
+                print(batch_labels, outputs)
                 loss = criterion(outputs, batch_labels)
                 val_loss += loss.item()
 
