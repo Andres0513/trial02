@@ -215,8 +215,10 @@ if __name__ == '__main__':
     # weather_df = load_weather_data(folder)
     # bidding_space_df['grid_env'] = bidding_space_df['时间'].apply(genrate_env_flag)
     # uninted_df = generate_feature_df(bidding_space_df, weather_df, clearing_df, start_date, end_date)
-    # uninted_df.to_pickle("uninted_df.pkl")
-    # print(f"✅ 数据集已保存：uninted_df.pkl")
+    # uninted_df.to_csv("uninted_df.csv")
+    # print(f"✅ 数据集已保存：uninted_df.csv")
+    # # uninted_df.to_pickle("uninted_df.pkl")
+    # # print(f"✅ 数据集已保存：uninted_df.pkl")
 
     # 加载保存的数据集
     df = pd.read_pickle("uninted_df.pkl")

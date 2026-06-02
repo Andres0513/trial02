@@ -152,13 +152,11 @@ if __name__ == '__main__':
                 batch_labels = batch_labels.to(device)
 
                 outputs = model(batch_input1, batch_input2)
-                print(batch_labels, outputs)
                 loss = criterion(outputs, batch_labels)
                 val_loss += loss.item()
 
         avg_val_loss = val_loss / len(val_loader)
         print(f"📊 Epoch {epoch + 1} 完成 | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
-
 
 
     # ========================== 训练完以后，把模型转成 ONNX ==========================
@@ -170,11 +168,13 @@ if __name__ == '__main__':
     # 生成 dummy data
     dummy_curves = [torch.randn(batch_size, seq_len).to(device) for _ in range(12)]
     dummy_nums = torch.randn(batch_size, num_features).to(device)
+    dummy_curves_2 = [torch.randn(batch_size, seq_len).to(device) for _ in range(12)]
+    dummy_nums_2 = torch.randn(batch_size, num_features).to(device)
 
     # 组织成模型 forward 期望的格式：( (curve1, curve2, ..., num), (curve1, ..., num) )
     # 注意：这里我们使用元组嵌套，更符合 Python 的语义
     input1 = (*dummy_curves, dummy_nums)
-    input2 = (*dummy_curves, dummy_nums)  # 或者用不同的数据
+    input2 = (*dummy_curves_2, dummy_nums_2)
 
     # 3. 导出配置
     input_names = [f"curve_{i}" for i in range(12)] + ["numerical_feat"] + \
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     # 4. 执行导出 (关键点：dynamo=True)
     torch.onnx.export(
         model,
-        (input1, input2),  # 👈 直接传入两个元组，新后端能理解这种结构
+        (input1, input2),  # 直接传入两个元组，新后端能理解这种结构
         "ultimate_siamese_net.onnx",
         opset_version=17,
         do_constant_folding=True,
@@ -200,7 +200,7 @@ if __name__ == '__main__':
         output_names=output_names,
         dynamic_axes=dynamic_axes,
         # ================== 关键修复 ==================
-        dynamo=True  # 👈 强制使用新的 torch.export 后端，不再报错 "27 arguments"
+        dynamo=True  # 强制使用新的 torch.export 后端，不再报错 "27 arguments"
         # ==============================================
     )
     print("✅ 模型已成功导出为 ultimate_siamese_net.onnx")

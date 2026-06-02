@@ -40,7 +40,7 @@ def map_feat_key(feat_dict, test_flag=False):
         'wind': 'curve_11',
         'num': 'numerical_feat'
     }
-    if test_flag:
+    if test_flag == False:
         new_dict = {mapping.get(k, k)+'_2': v for k, v in feat_dict.items()}
         return new_dict
     else:
