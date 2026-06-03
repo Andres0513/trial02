@@ -9,8 +9,9 @@ SIMILARITY_METHOD = similarity_method.COSINE
 
 session = ort.InferenceSession("ultimate_siamese_net_epoch300_非加权误差.onnx")
 print("✅ 模型已成功加载 ultimate_siamese_net.onnx")
-# df = pd.read_pickle("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.pkl")
-df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
+df = pd.read_pickle("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.pkl")
+# df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
+print("✅ 源数据文件已成功加载")
 # 需要的数据日期范围
 date_range = [['2026-05-01', '2026-05-14']]
 dl = Data_Loader(SIMILARITY_METHOD)
@@ -85,6 +86,7 @@ def calc_sign_consistency(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
 sign_consistency = calc_sign_consistency(mean_spread_df, spread_test)
 avg = sign_consistency['consist_ratio'].mean()
 
+# 正负一致性结果放入宽表
 wide_df = pd.merge(
     wide_df,
     sign_consistency.reset_index(names='date_test'),
@@ -102,7 +104,7 @@ cols.insert(3, 'avg')
 cols.insert(4, 'consist_ratio')
 wide_df = wide_df[cols]
 
-# ========== 把平均值也插入到宽表里去 ============
+# ========== 把平均值插入到宽表里去 ============
 mean_spread_df['date_ref'] = pd.NA
 mean_spread_df['fitted_similarity'] = pd.NA
 mean_spread_df['consist_ratio'] = pd.NA
@@ -119,8 +121,25 @@ cols.insert(3, 'avg')
 cols.insert(4, 'consist_ratio')
 mean_spread_df = mean_spread_df[cols]
 
+# ========== 把真实值插入到宽表里去 ============
+spread_test['date_ref'] = pd.NA
+spread_test['fitted_similarity'] = pd.NA
+spread_test['consist_ratio'] = pd.NA
+spread_test['avg'] = pd.NA
+spread_test = spread_test.reset_index(names='date_test')
+cols = spread_test.columns.to_list()
+cols.remove('date_ref')
+cols.remove('fitted_similarity')
+cols.remove('avg')
+cols.remove('consist_ratio')
+cols.insert(1, 'date_ref')
+cols.insert(2, 'fitted_similarity')
+cols.insert(3, 'avg')
+cols.insert(4, 'consist_ratio')
+spread_test = spread_test[cols]
+
 # 所有的信息拼接完成，并排序好
-wide_df = pd.concat([wide_df, mean_spread_df], ignore_index=True)
+wide_df = pd.concat([wide_df, mean_spread_df, spread_test], ignore_index=True)
 wide_df = wide_df.sort_values(by=['date_test', 'fitted_similarity'], ascending=[True, False]).reset_index(drop=True)
 
 wide_df.to_excel("result_wide_df.xlsx")
