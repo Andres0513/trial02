@@ -17,7 +17,8 @@ SIMILARITY_METHOD = similarity_method.COSINE
 
 if __name__ == '__main__':
     # 加载保存的数据集
-    df = pd.read_pickle("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.pkl")
+    # df = pd.read_pickle("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.pkl")
+    df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
     print(f"✅ 数据集已加载：uninted_df.pkl")
 
     dl = Data_Loader(SIMILARITY_METHOD)
@@ -91,9 +92,24 @@ if __name__ == '__main__':
 
     # 3. 模型初始化
     model = UltimateSiameseNet(num_numerical_features=4).to(device)
-    criterion = nn.MSELoss()  # 回归任务用 MSE，或者 BCEWithLogitsLoss (取决于标签范围)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0002)
+    # criterion = nn.MSELoss()  # 回归任务用 MSE，或者 BCEWithLogitsLoss (取决于标签范围)
 
+    # 替换原来的 nn.MSELoss()
+    def weighted_mse(pred, target):
+        weight = torch.ones_like(target)
+        weight[target > 0.7] = 2.0  # 高分更重要
+        weight[target < 0.4] = 2.0  # 低分更重要
+        weight[target > 0.8] = 4.0  # 高分更重要
+        weight[target < 0.2] = 4.0  # 低分更重要
+        weight[target > 0.9] = 8.0  # 高分更重要
+        weight[target < 0.1] = 8.0  # 低分更重要
+        return torch.mean(weight * (pred - target) ** 2)
+
+
+    criterion = weighted_mse  # 直接赋值
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0008)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-4)
 
     def move_batch_to_device(batch_data, device):
         """
@@ -156,8 +172,44 @@ if __name__ == '__main__':
                 val_loss += loss.item()
 
         avg_val_loss = val_loss / len(val_loader)
-        print(f"📊 Epoch {epoch + 1} 完成 | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}")
+        scheduler.step()
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f"📊 Epoch {epoch + 1} 完成 | Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | LR: {current_lr:.6f}")
 
+    # ========================== 验证集结果验证与整理 ==========================
+    model.eval()
+    results = []
+    val_indices = val_dataset.indices
+
+    with torch.no_grad():
+        for idx in tqdm(val_indices, desc="验证集预测"):
+            # 从原始数据集获取数据
+            (input1, input2, label) = full_dataset[idx]
+            # 获取原始日期对
+            date1, date2 = full_dataset.pairs[idx]
+
+            # 调整数据形状并移动到设备（增加batch维度）
+            input1 = move_batch_to_device(tuple(t.unsqueeze(0) for t in input1), device)
+            input2 = move_batch_to_device(tuple(t.unsqueeze(0) for t in input2), device)
+
+            # 模型预测
+            pred = model(input1, input2)
+
+            # 收集结果
+            results.append({
+                'date1': date1,
+                'date2': date2,
+                '原始score': label.item(),
+                '预测值': pred.item()
+            })
+
+    # 转换为DataFrame
+    results_df = pd.DataFrame(results)
+    # 可选：保存结果到Excel
+    results_df.to_excel('验证集预测结果.xlsx', index=False)
+    print("✅ 验证集结果已整理完成，保存为 验证集预测结果.xlsx")
+    print("\n验证集结果预览：")
+    print(results_df.head())
 
     # ========================== 训练完以后，把模型转成 ONNX ==========================
     model.eval()  # 👉 导出前必须切换到评估模式，固定 Dropout 和 BatchNorm
@@ -193,14 +245,11 @@ if __name__ == '__main__':
         model,
         (input1, input2),  # 直接传入两个元组，新后端能理解这种结构
         "ultimate_siamese_net.onnx",
-        opset_version=17,
+        opset_version=16,
         do_constant_folding=True,
         export_params=True,
         input_names=input_names,
         output_names=output_names,
         dynamic_axes=dynamic_axes,
-        # ================== 关键修复 ==================
-        dynamo=True  # 强制使用新的 torch.export 后端，不再报错 "27 arguments"
-        # ==============================================
     )
     print("✅ 模型已成功导出为 ultimate_siamese_net.onnx")

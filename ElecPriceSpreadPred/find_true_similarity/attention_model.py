@@ -123,22 +123,39 @@ class SelfAttentionBlock(nn.Module):
 
 
 class DynamicCrossFusion(nn.Module):
-    """
-    动态多曲线交叉融合模块
-    支持任意数量的曲线输入，自动完成所有曲线间的交叉注意力计算
-    """
-
     def __init__(self, feature_dim=32, num_heads=4):
         super().__init__()
-        self.cross_attn = nn.MultiheadAttention(embed_dim=feature_dim, num_heads=num_heads, batch_first=True)
+        self.embed_dim = feature_dim
+        self.num_heads = num_heads
+        self.head_dim = feature_dim // num_heads
+
+        self.q_proj = nn.Linear(feature_dim, feature_dim)
+        self.k_proj = nn.Linear(feature_dim, feature_dim)
+        self.v_proj = nn.Linear(feature_dim, feature_dim)
+
+        self.out_proj = nn.Linear(feature_dim, feature_dim)
         self.norm = nn.LayerNorm(feature_dim)
 
-    def forward(self, all_curves_feat):
-        # Q, K, V 都是同一个张量：让所有的曲线互相“看”对方
-        fused_out, _ = self.cross_attn(query=all_curves_feat, key=all_curves_feat, value=all_curves_feat)
-        # 残差连接 + LayerNorm，防止梯度消失
-        out = self.norm(all_curves_feat + fused_out)
-        return out
+    def forward(self, x):
+        B, N, C = x.shape
+
+        q = self.q_proj(x)
+        k = self.k_proj(x)
+        v = self.v_proj(x)
+
+        # 🔥 关键：用 view 替换 unflatten，ONNX 兼容
+        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+
+        attn_weights = torch.matmul(q, k.transpose(-2, -1)) / (self.head_dim ** 0.5)
+        attn_weights = F.softmax(attn_weights, dim=-1)
+
+        attn_output = torch.matmul(attn_weights, v)
+        attn_output = attn_output.transpose(1, 2).contiguous().view(B, N, C)
+
+        out = self.out_proj(attn_output)
+        return self.norm(x + out)
 
 
 # ==========================================
@@ -168,10 +185,12 @@ class UltimateSiameseNet(nn.Module):
         # 维度计算：N条曲线自身特征(32*N) + 数值特征(16) + N条交叉后特征(32*N)
         total_dim = len(self.curve_names) * 32 + 16 + len(self.curve_names) * 32
         self.regressor = nn.Sequential(
-            nn.Linear(total_dim, 128),
+            nn.Linear(total_dim, 256),  # 加宽隐层提升拟合能力
             nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(128, 1)
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Dropout(0.1),  # 降低dropout，从0.2→0.1
+            nn.Linear(128, 1)  # 保持无Sigmoid
         )
 
     def extract_features(self, curves_tuple, num_data):
@@ -224,6 +243,7 @@ if __name__ == '__main__':
     # 假设你已经准备好了 df_scores 和 df_feat
     # full_dataset = DatePairDataset(df_scores, df_feat)
     # train_loader = DataLoader(full_dataset, batch_size=64, shuffle=True)
+
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = UltimateSiameseNet(num_numerical_features=4).to(device)

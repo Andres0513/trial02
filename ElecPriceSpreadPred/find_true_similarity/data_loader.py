@@ -82,7 +82,7 @@ class Data_Loader:
             level_data_matrix = spread_level.values
 
         for i in range(0, len(data_matrix)):
-            for j in range(i + 1, len(data_matrix)):
+            for j in range(0, len(data_matrix)):
                 values1 = data_matrix[i]
                 values2 = data_matrix[j]
                 score = 1e6
