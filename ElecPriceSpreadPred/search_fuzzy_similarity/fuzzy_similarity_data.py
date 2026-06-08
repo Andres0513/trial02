@@ -119,4 +119,4 @@ class Fuzzy_Similarity_Data:
             feat = filter_date(feat, date_range)
         all_train_df = self.cal_all_train_df(spread, feat)
 
-        return all_train_df
+        return spread, all_train_df
