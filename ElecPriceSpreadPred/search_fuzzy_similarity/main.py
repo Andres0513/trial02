@@ -60,8 +60,8 @@ if __name__ == '__main__':
     train_df = pd.concat([train_df, oversample_df_4], ignore_index=True)
 
     # ================= 对日期进行预处理 =================
-    train_df_backup = train_df.copy()
-    val_df_backup = val_df.copy()
+    train_df_backup = train_df.copy().reset_index(drop=True)
+    val_df_backup = val_df.copy().reset_index(drop=True)
     train_df = train_df.drop(columns=['target_date', 'reference_date'])
     val_df = val_df.drop(columns=['target_date', 'reference_date'])
 
