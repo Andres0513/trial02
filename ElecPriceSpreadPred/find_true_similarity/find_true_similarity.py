@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
 
     # 5. 开始训练
-    num_epochs = 100
+    num_epochs = 15
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0

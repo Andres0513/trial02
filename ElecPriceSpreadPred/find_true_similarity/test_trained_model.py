@@ -7,7 +7,7 @@ import utils
 
 SIMILARITY_METHOD = similarity_method.COSINE
 
-session = ort.InferenceSession("ultimate_siamese_net_epoch300_非加权误差.onnx")
+session = ort.InferenceSession("ultimate_siamese_net.onnx")
 print("✅ 模型已成功加载 ultimate_siamese_net.onnx")
 df = pd.read_pickle("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.pkl")
 # df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
