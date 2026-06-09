@@ -1,3 +1,4 @@
+model_demo
 import pandas as pd
 from enums import similarity_method
 from fuzzy_similarity_data import Fuzzy_Similarity_Data
@@ -6,6 +7,9 @@ import xgboost as xgb
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from wide_table import Wide_Table
+
+import utils
+
 
 def split_train_and_test(all_df):
     val_split_date = date(2026,4,28)
@@ -24,65 +28,19 @@ def validate_model(model, x, true_y):
     rmse = np.sqrt(mean_squared_error(true_y, pred_y))
     return pred_y, rmse
 
-def sort_df(df, sort_key):
-    df = df[df['target_date'] != df['reference_date']]
-    sorted_df = df.sort_values(by=['target_date', sort_key], ascending=[True, False])
-
-    return sorted_df
-
-def cal_spread(sorted_df, spread, top_n):
-    # 1. 取 top_n
-    top_n_ref = (
-        sorted_df.sort_values(['target_date', 'pred_y'], ascending=[True, False])
-        .groupby('target_date', group_keys=False)
-        .head(top_n)
-    )
-
-    # 2. 统一日期为 date 对象（去掉时间）
-    top_n_pairs = top_n_ref[['target_date', 'reference_date']].copy()
-    top_n_pairs['reference_date'] = pd.to_datetime(top_n_pairs['reference_date']).dt.date
-    top_n_pairs['target_date'] = pd.to_datetime(top_n_pairs['target_date']).dt.date
-
-    # 3. 索引变列 → 列名叫 index → 重命名为 date（关键）
-    spread_df = spread.reset_index()   # 索引变成列：列名 = index
-    spread_df.rename(columns={
-        '日期': 'reference_date'
-    }, inplace=True)
-    # spread_df.rename(columns={'index': 'date'}, inplace=True)  # 改名叫 date
-    # spread_df['date'] = pd.to_datetime(spread_df['日期']).dt.date  # 统一为 date
-
-    # 4. 按 target_date 循环匹配
-    result_dfs = []
-    for target_date, group in top_n_pairs.groupby('target_date'):
-        ref_dates = group['reference_date'].tolist()
-
-        # 用 date 列匹配
-        sub_spread = spread_df[spread_df['reference_date'].isin(ref_dates)].copy()
-        if sub_spread.empty:
-            print(f"警告：{target_date} 无有效 reference_date")
-            continue
-
-        sub_spread['target_date'] = target_date
-        # --- 把 target_date 挪到第一列 ---
-        sub_spread.insert(0, 'target_date', sub_spread.pop('target_date'))
-        sub_spread.columns = [f"{col}" for col in sub_spread.columns]
-        result_dfs.append(sub_spread)
-
-    # 5. 拼接
-    final_df = pd.concat(result_dfs, axis=0)
-    return final_df
 
 if __name__ == '__main__':
     # 加载保存的数据集
     # df = pd.read_pickle("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.pkl")
-    df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
-    # df = pd.read_csv("/Users/bytedance/Codes/Python/e/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
+    # df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
+    df = pd.read_csv("/Users/bytedance/Codes/Python/e/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
     print(f"✅ 数据集已加载：uninted_df.pkl")
 
     fsd = Fuzzy_Similarity_Data()
     # 需要的数据日期范围
     date_range = [['2024-05-02', '2026-05-02']]
     spread, all_df = fsd.run(df, date_range)
+    spread = spread.reset_index()
     train_df, val_df, test_df = split_train_and_test(all_df)
     #  ================= 数据分布 =================
     # 5% 分位数
@@ -100,7 +58,7 @@ if __name__ == '__main__':
     high_score_df_2 = train_df[train_df['spread_cos'] > 0.9].copy()
     low_score_df_2 = train_df[train_df['spread_cos'] < 0.1].copy()
 
-    # 2. 每个样本复制 20 次（最安全、最快写法）
+    # 2. 每个样本复制 20 次
     repeat_times = 20
     oversample_df_1 = pd.concat([high_score_df] * repeat_times, ignore_index=True)
     oversample_df_2 = pd.concat([low_score_df] * repeat_times, ignore_index=True)
@@ -176,16 +134,14 @@ if __name__ == '__main__':
     cols = ['pred_y'] + [c for c in test_res.columns if c != 'pred_y']
     test_res = test_res[cols]
 
-    val_res = sort_df(val_res, 'pred_y')
-    final_val_res = cal_spread(val_res, spread, 10)
+    val_res = utils.sort_df(val_res, 'pred_y')
+    final_val_res = utils.cal_spread(val_res, spread, 10)
 
-    test_res = sort_df(test_res, 'pred_y')
-    final_test_res = cal_spread(test_res, spread, 10)
+    test_res = utils.sort_df(test_res, 'pred_y')
+    final_test_res = utils.cal_spread(test_res, spread, 10)
 
     wt = Wide_Table()
     wide_val_res = wt.run(final_val_res, spread, val_res)
 
     wide_test_res = wt.run(final_test_res, spread, test_res)
 
-    a = 0
-    b = 0

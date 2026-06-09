@@ -27,8 +27,8 @@ class Wide_Table:
         # 1. 提取mean_spread_df里的target_date列表
         target_dates = mean_spread_df['target_date'].unique()
         # 2. 在spread中筛选这些日期对应的行，生成新df
-        new_spread_df = spread[spread.index.isin(target_dates)].copy()
-        new_spread_df = new_spread_df.reset_index(names='target_date')
+        new_spread_df = spread[spread['日期'].isin(target_dates)].copy()
+        new_spread_df.rename(columns={'日期': 'target_date'}, inplace=True)
         new_spread_df.insert(1, 'reference_date', 'raw_spread')
         new_spread_df.insert(2, 'pred_y', 'raw_spread')
         new_spread_df.insert(3, 'spread_cos', 'raw_spread')
@@ -80,11 +80,14 @@ class Wide_Table:
         # 转成DataFrame，方便merge
         consistency_df = pd.DataFrame(consistency_data)
 
-        # 3. 合并回wide_res，只在reference_date='raw_spread'的行填充
+        # 3. 合并回wide_res，只在reference_date='pred_spread'的行填充
         wide_res = wide_res.merge(consistency_df, on='target_date', how='left')
-        wide_res.loc[wide_res['reference_date'] != 'raw_spread', 'sign_consistency'] = np.nan
+        wide_res.loc[wide_res['reference_date'] != 'pred_spread', 'sign_consistency'] = np.nan
 
-        # 4. 把sign_consistency插入到第5列（索引4）
+        # 4. 对‘pred_spread’的行填充nan
+        wide_res.loc[wide_res['reference_date'] == 'pred_spread', ['pred_y', 'spread_cos']] = 'pred_spread'
+
+        # 5. 把sign_consistency插入到第5列（索引4）
         cols = wide_res.columns.tolist()
         cols.insert(4, cols.pop(cols.index('sign_consistency')))
         wide_res = wide_res[cols]

@@ -66,11 +66,12 @@ class Fuzzy_Similarity_Data:
         cos_sim = cosine_similarity(feat_1_nda.reshape(1, -1), feat_2_nda.reshape(1, -1))[0][0]
         return mean_1, mean_2, cos_sim
 
-    def cal_all_train_df(self, spread, feat):
+    def cal_all_train_df(self, spread, feat, demo=True):
         feat_dict = self.extract_specific_feat(feat)
         len_date = len(feat)
+        l = 14 if demo else len_date
         res = []
-        for i in range(len_date-14 ,len_date): # 目标日期（前两周内）
+        for i in range(len_date-l ,len_date): # 目标日期（前两周内）
             for j in range(0, i+1): # 参考日期
                 larger_date = feat.index[i]
                 smaller_date = feat.index[j]
@@ -99,7 +100,7 @@ class Fuzzy_Similarity_Data:
         return res
 
 
-    def run(self, df, date_range):
+    def run(self, df, date_range, demo=True):
         def filter_date(df, date_range):
             filtered_dfs = []
             for start, end in date_range:
@@ -117,6 +118,6 @@ class Fuzzy_Similarity_Data:
             rt = filter_date(rt, date_range)
             spread = filter_date(spread, date_range)
             feat = filter_date(feat, date_range)
-        all_train_df = self.cal_all_train_df(spread, feat)
+        all_train_df = self.cal_all_train_df(spread, feat, demo)
 
         return spread, all_train_df
