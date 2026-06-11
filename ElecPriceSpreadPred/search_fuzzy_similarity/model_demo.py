@@ -1,4 +1,3 @@
-model_demo
 import pandas as pd
 from enums import similarity_method
 from fuzzy_similarity_data import Fuzzy_Similarity_Data
@@ -32,8 +31,8 @@ def validate_model(model, x, true_y):
 if __name__ == '__main__':
     # 加载保存的数据集
     # df = pd.read_pickle("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.pkl")
-    # df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
-    df = pd.read_csv("/Users/bytedance/Codes/Python/e/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
+    df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
+    # df = pd.read_csv("/Users/bytedance/Codes/Python/e/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
     print(f"✅ 数据集已加载：uninted_df.pkl")
 
     fsd = Fuzzy_Similarity_Data()

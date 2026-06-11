@@ -24,25 +24,10 @@ class Model_Predictor:
             eval_metric="rmse"  # 回归常用评价：rmse / mae
         )
         self.top_n = 10
+        self.categorical_cols = utils.categorical_cols
         return
 
     def validate_model(self, x, true_y):
-        # ===================== 🔥 修复代码开始 =====================
-        # 只清理分类特征里的未知值，数值列完全不动
-        try:
-            bst = self.model.get_booster()
-            cat_info = bst.categorical_types  # 分类列信息
-
-            for col, cat_type in cat_info.items():
-                if col not in x.columns:
-                    continue
-                valid_values = cat_type.categories
-                # 把训练集没见过的分类值 → 设为 NaN（XGBoost支持缺失值）
-                x.loc[~x[col].isin(valid_values), col] = np.nan
-        except:
-            pass  # 万一没有分类列，也不报错
-        # ===================== 🔥 修复代码结束 =====================
-
         pred_y = self.model.predict(x)
         rmse = np.sqrt(mean_squared_error(true_y, pred_y))
         return pred_y, rmse
@@ -74,15 +59,9 @@ class Model_Predictor:
         train_df = train_df.drop(columns=['target_date', 'reference_date'])
         test_df = test_df.drop(columns=['target_date', 'reference_date'])
 
-        # 枚举特征：周几、季度、电网工况 → 转成 category 类型
-        categorical_cols = []
-        for col in train_df.columns:
-            if 'grid_env' in col or 'week_day' in col or 'season' in col or 'is_holiday' in col:
-                categorical_cols.append(col)
-
         # 转 category（XGBoost 支持直接训练）
-        train_df[categorical_cols] = train_df[categorical_cols].astype('int').astype('category')
-        test_df[categorical_cols] = test_df[categorical_cols].astype('int').astype('category')
+        train_df[self.categorical_cols] = train_df[self.categorical_cols].astype('int').astype('category')
+        test_df[self.categorical_cols] = test_df[self.categorical_cols].astype('int').astype('category')
 
         # ================= 划分输入输出 =================
         train_x = train_df.iloc[:, 0:]
