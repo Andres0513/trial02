@@ -3,7 +3,7 @@ import pandas as pd
 # 枚举特征：周几、季度、电网工况 → 转成 category 类型
 categorical_cols = ['grid_env', 'week_day', 'season', 'is_holiday']
 
-def sort_df(df, sort_key):
+def remove_same_date_then_sort(df, sort_key):
     df = df[df['target_date'] != df['reference_date']]
     sorted_df = df.sort_values(by=['target_date', sort_key], ascending=[True, False])
 

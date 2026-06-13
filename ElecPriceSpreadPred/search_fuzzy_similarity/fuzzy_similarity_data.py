@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, date
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -83,6 +83,7 @@ class Fuzzy_Similarity_Data:
                 # ========================= 计算两个日期的价差相似 =========================
                 _, _, spread_cos = self.cal_pair_feat(spread.loc[larger_date].values, spread.loc[smaller_date].values)
                 one_row_dict["spread_cos"] = (spread_cos + 1.0) / 2.0
+
                 # ========================= 计算特征值 =========================
                 for key in feat_larger_data.keys():
                     mean_1, mean_2, cos_sim = self.cal_pair_feat(feat_larger_data.get(key), feat_smaller_data.get(key))

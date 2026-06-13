@@ -133,10 +133,10 @@ if __name__ == '__main__':
     cols = ['pred_y'] + [c for c in test_res.columns if c != 'pred_y']
     test_res = test_res[cols]
 
-    val_res = utils.sort_df(val_res, 'pred_y')
+    val_res = utils.remove_same_date_then_sort(val_res, 'pred_y')
     final_val_res = utils.cal_spread(val_res, spread, 10)
 
-    test_res = utils.sort_df(test_res, 'pred_y')
+    test_res = utils.remove_same_date_then_sort(test_res, 'pred_y')
     final_test_res = utils.cal_spread(test_res, spread, 10)
 
     wt = Wide_Table()

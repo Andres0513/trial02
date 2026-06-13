@@ -67,7 +67,7 @@ def split_train_and_test(all_df, test_date, forward_days):
 
 
 if __name__ == '__main__':
-    # # ================= 数据 =================
+    # # ================= 加载原始数据并加工后保存 =================
     # # 加载保存的数据集
     # # df = pd.read_pickle("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.pkl")
     # df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
@@ -76,11 +76,11 @@ if __name__ == '__main__':
     #
     # fsd = Fuzzy_Similarity_Data()
     # # 需要的数据日期范围
-    # date_range = [['2024-05-02', '2026-05-14']]
+    # date_range = [['2024-05-02', '2026-06-12']]
     # spread, all_df = fsd.run(df, date_range, demo=False)    # demo=False 时，返回所有数据
     # spread.to_csv("spread.csv", index=True)
     # all_df.to_csv("all_df.csv", index=False)
-    # ================= 加载保存的数据集 =================
+    # ================= 加载保存的加工好的数据集 =================
     # 1. 加载
     spread = pd.read_csv("spread.csv")
     all_df = pd.read_csv("all_df.csv")
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     # train_df, val_df, test_df = split_train_and_test(all_df)
     # 定义起始/结束日期
     start_date = date(2026, 2, 1)
-    end_date = date(2026, 5, 14)
+    end_date = date(2026, 6, 12)
 
     # 生成日期范围并转为date对象列表
     date_list = pd.date_range(start=start_date, end=end_date).date.tolist()

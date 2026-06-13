@@ -2,7 +2,7 @@ import os
 import glob
 import pandas as pd
 
-def load_all_files_in_folder_by_keyword(folder: str, keyword: str) -> pd.DataFrame:
+def load_all_files_in_folder_by_keyword(folder: str, keyword: str, weather_prediction: bool) -> pd.DataFrame:
     # 查找所有 .xlsx 且 包含关键词 的文件
     excel_files = [
         f for f in glob.glob(os.path.join(folder, "*.xlsx"))
@@ -15,6 +15,32 @@ def load_all_files_in_folder_by_keyword(folder: str, keyword: str) -> pd.DataFra
         print("正在读取：", os.path.basename(file))
         df = pd.read_excel(file)
         df_list.append(df)
+
+    if keyword=="天气" and weather_prediction==True:
+        # 查找所有天气预报的文件
+        excel_files = [
+            f for f in glob.glob(os.path.join(folder, "*预报值*.xlsx"))
+        ]
+        for file in excel_files:
+            print("正在读取: ", os.path.basename(file))
+            df = pd.read_excel(file)
+            df = df.rename(columns={
+                "浙江省Ecmwf温度": "温度",
+                "浙江省Ecmwf相对湿度": "湿度",
+                "浙江省Ecmwf降雨量": "降雨",
+                "浙江省Ecmwf风速": "风速",
+                "浙江省Ecmwf辐照": "辐照",
+                "浙江省Ecmwf云量": "云"
+            })
+            df = df.rename(columns={
+                "温度（浙江省ECMWF预测值）": "温度",
+                "相对湿度（浙江省ECMWF预测值）": "湿度",
+                "降雨量（浙江省ECMWF预测值）": "降雨",
+                "风速（浙江省ECMWF预测值）": "风速",
+                "辐照（浙江省ECMWF预测值）": "辐照",
+                "云量（浙江省ECMWF预测值）": "云"
+            })
+            df_list.append(df)
 
     # 合并所有的DataFrame
     df_final = pd.concat(df_list, ignore_index=True)
@@ -78,16 +104,17 @@ if __name__ == '__main__':
     TARGET_FOLDER = 'electricity_data'
     # 要匹配的关键词
     KEY_WORDS = ["出清", "天气", "竞价空间"]
+    KEY_WORDS = ["天气"]
     for key_word in KEY_WORDS:
         # 拼接路径：项目目录/目标文件夹
         search_path = os.path.join(BASE_DIR, ORIGIN_FOLDER)
         target_path = os.path.join(os.path.join(BASE_DIR, TARGET_FOLDER), key_word+'.xlsx')
-        df_final = load_all_files_in_folder_by_keyword(search_path, key_word)
+        df_final = load_all_files_in_folder_by_keyword(search_path, key_word, weather_prediction=True)
         # 原文件数据有问题，后处理下
-        if key_word == "出清":
+        if key_word == "出清":    # 处理出清数据，读的是天天智电后来给的，最后模型没用这份数据，模型用的是自己下载的那份
             df_final = postprocess_merged_clearing_data(df_final)
-        if key_word == "竞价空间":
+        if key_word == "竞价空间":  # 处理竞价空间数据，读的是天天智电后来给的，最后模型没用这份数据，模型用的是自己下载的那份
             df_final = postprocess_merged_bidding_space_data(df_final)
-        if key_word == "天气":
+        if key_word == "天气":    # 处理天气数据，读的是天天智电后来给的，模型用的是这份数据。
             df_final = postprocess_merged_weather_data(df_final)
-        df_final.to_excel(target_path, index=False)
+        df_final.to_excel(target_path, index=False) # 输出excel文件，文件名是key_words加xlsx后缀

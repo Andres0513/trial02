@@ -74,6 +74,7 @@ class Model_Predictor:
         # 训练集
         pred_y_train, rmse_train = self.validate_model(train_x, train_y)
         # 测试集
+
         pred_y_test, rmse_test = self.validate_model(test_x, test_y)
 
         test_res = pd.concat([test_df_backup, pd.DataFrame(pred_y_test, columns=['pred_y'])], axis=1)
@@ -81,7 +82,7 @@ class Model_Predictor:
         cols = ['pred_y'] + [c for c in test_res.columns if c != 'pred_y']
         test_res = test_res[cols]
 
-        test_res = utils.sort_df(test_res, 'pred_y')
+        test_res = utils.remove_same_date_then_sort(test_res, 'pred_y')
         final_test_res = utils.cal_spread(test_res, spread, self.top_n)
 
         wt = wide_table.Wide_Table()
