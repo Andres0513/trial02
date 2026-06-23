@@ -67,14 +67,22 @@ class Wide_Table:
                     # 计算符号是否一致（>0为1，<0为-1，符号相乘>0即同号）
                     sign_match = (np.sign(pred_values) * np.sign(raw_values)) > 0
                     consistency = sign_match.mean()  # 同号比例，0~1
+                    # True乘1，False乘-1，再乘以raw_values绝对值
+                    weighted = np.where(sign_match, 1, -1) * np.abs(raw_values)
+                    algo_spread = weighted.mean()
+                    algo_spread_ratio = weighted.mean() / (np.abs(raw_values).mean()+1e-6)
                 else:
                     consistency = np.nan
+                    algo_spread = np.nan
             else:
                 consistency = np.nan
+                algo_spread = np.nan
 
             consistency_data.append({
                 'target_date': target_date,
-                'sign_consistency': consistency
+                'sign_consistency': consistency,
+                'algo_spread' : algo_spread,
+                'algo_spread_ratio': algo_spread_ratio
             })
 
         # 转成DataFrame，方便merge
@@ -83,6 +91,8 @@ class Wide_Table:
         # 3. 合并回wide_res，只在reference_date='pred_spread'的行填充
         wide_res = wide_res.merge(consistency_df, on='target_date', how='left')
         wide_res.loc[wide_res['reference_date'] != 'pred_spread', 'sign_consistency'] = np.nan
+        wide_res.loc[wide_res['reference_date'] != 'pred_spread', 'algo_spread'] = np.nan
+        wide_res.loc[wide_res['reference_date'] != 'pred_spread', 'algo_spread_ratio'] = np.nan
 
         # 4. 对‘pred_spread’的行填充nan
         wide_res.loc[wide_res['reference_date'] == 'pred_spread', ['pred_y', 'spread_cos']] = 'pred_spread'
@@ -90,6 +100,8 @@ class Wide_Table:
         # 5. 把sign_consistency插入到第5列（索引4）
         cols = wide_res.columns.tolist()
         cols.insert(4, cols.pop(cols.index('sign_consistency')))
+        cols.insert(5, cols.pop(cols.index('algo_spread')))
+        cols.insert(6, cols.pop(cols.index('algo_spread_ratio')))
         wide_res = wide_res[cols]
 
         return wide_res

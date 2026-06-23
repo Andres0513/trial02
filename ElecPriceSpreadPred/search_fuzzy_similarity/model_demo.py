@@ -31,8 +31,8 @@ def validate_model(model, x, true_y):
 if __name__ == '__main__':
     # 加载保存的数据集
     # df = pd.read_pickle("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.pkl")
-    df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
-    # df = pd.read_csv("/Users/bytedance/Codes/Python/e/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
+    # df = pd.read_csv("/Users/yukaifeng/Codes/Python/trail02/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
+    df = pd.read_csv("/Users/bytedance/Codes/Python/e/ElecPriceSpreadPred/uninted_df.csv", index_col=0)
     print(f"✅ 数据集已加载：uninted_df.pkl")
 
     fsd = Fuzzy_Similarity_Data()
@@ -90,17 +90,36 @@ if __name__ == '__main__':
     test_df[categorical_cols] = test_df[categorical_cols].astype('int').astype('category')
 
     # ================= 划分输入输出 =================
-    train_x = train_df.iloc[:, 0:]
+    train_x = train_df.iloc[:, 1:]
     train_y = train_df.iloc[:, 0]
-    val_x = val_df.iloc[:, 0:]
+    val_x = val_df.iloc[:, 1:]
     val_y = val_df.iloc[:, 0]
-    test_x = test_df.iloc[:, 0:]
+    test_x = test_df.iloc[:, 1:]
     test_y = test_df.iloc[:, 0]
+
+
+    def map_target(x):
+        if x > 0.8:
+            return 10
+        elif 0.7 <= x <= 0.8:
+            return 6
+        elif 0.6 <= x < 0.7:
+            return 4
+        elif 0.1 <= x < 0.6:
+            return 1
+        else:  # <0.1 其余全部0
+            return 0
+
+
+    # 原有代码基础上修改
+    train_y = train_df.iloc[:, 0].apply(map_target)
+    val_y = val_df.iloc[:, 0].apply(map_target)
+    test_y = test_df.iloc[:, 0].apply(map_target)
 
     # 模型
     model = xgb.XGBRegressor(
-        n_estimators=20,
-        max_depth=4,
+        n_estimators=50,
+        max_depth=5,
         learning_rate=0.06,
         subsample=0.7,
         colsample_bytree=0.7,
@@ -144,3 +163,4 @@ if __name__ == '__main__':
 
     wide_test_res = wt.run(final_test_res, spread, test_res)
 
+    a = 0

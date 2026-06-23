@@ -1,6 +1,7 @@
 import pandas as pd
 from fuzzy_similarity_data import Fuzzy_Similarity_Data
 from model_predictor import Model_Predictor
+from model_predictor_02 import Model_Predictor02
 from datetime import date
 import utils
 
@@ -93,14 +94,14 @@ if __name__ == '__main__':
 
     # train_df, val_df, test_df = split_train_and_test(all_df)
     # 定义起始/结束日期
-    start_date = date(2026, 2, 1)
-    end_date = date(2026, 6, 12)
+    start_date = date(2026, 4, 29)
+    end_date = date(2026, 4, 29)
 
     # 生成日期范围并转为date对象列表
     date_list = pd.date_range(start=start_date, end=end_date).date.tolist()
 
     mp = Model_Predictor(top_n=10)
-    forward_days = 14   # 使用前几天数据进行训练
+    forward_days = 2   # 使用前几天数据进行训练
     pred_res = []
     all_res = []
     for test_date in date_list:

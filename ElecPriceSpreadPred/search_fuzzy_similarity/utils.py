@@ -1,7 +1,8 @@
 import pandas as pd
 
 # 枚举特征：周几、季度、电网工况 → 转成 category 类型
-categorical_cols = ['grid_env', 'week_day', 'season', 'is_holiday']
+# categorical_cols = ['grid_env', 'week_day', 'season', 'is_holiday']
+categorical_cols = ['grid_env']
 
 def remove_same_date_then_sort(df, sort_key):
     df = df[df['target_date'] != df['reference_date']]
@@ -14,6 +15,11 @@ def cal_spread(sorted_df, spread, top_n):
     # 1. 取 top_n
     top_n_ref = (
         sorted_df.sort_values(['target_date', 'pred_y'], ascending=[True, False])
+        .groupby('target_date', group_keys=False)
+        .head(top_n)
+    )
+    top_n_ref = (
+        sorted_df.sort_values(['target_date', 'bid_cos_sim'], ascending=[True, False])
         .groupby('target_date', group_keys=False)
         .head(top_n)
     )
